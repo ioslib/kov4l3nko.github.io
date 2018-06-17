@@ -1,0 +1,264 @@
+<html>
+<head>
+	<meta charset="UTF-8">
+	
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<title>Cracking SSL pinning in AFNetwork - @kov4l3nko</title>
+	
+	<meta name="twitter:card" content="summary_large_image"></meta>
+	<meta name="twitter:site" content="@kov4l3nko"></meta>
+	<meta name="twitter:creator" content="@kov4l3nko"></meta>
+	<meta property="og:url" content="https://kov4l3nko.github.io/blog/2018-06-18-afnetwork-disable-ssl-pinning/"></meta>
+	<meta property="og:title" content="Cracking SSL pinning in AFNetwork"></meta>
+	<meta property="og:image" content="https://kov4l3nko.github.io/blog/2018-06-18-afnetwork-disable-ssl-pinning/title.jpg"></meta>
+
+	<link rel="stylesheet" type="text/css" href="https://kov4l3nko.github.io/styles.css">
+
+	
+
+</head>
+<body>
+	<header>
+		<div id="top">
+			<div id="blog-title">
+				<h1><a href="https://kov4l3nko.github.io/">@kov4l3nko</a></h1>
+			</div>
+			<div id="blog-menu">
+				<a href="https://kov4l3nko.github.io/">Blog</a>
+				
+					<a href="https://kov4l3nko.github.io/about/">About</a>&nbsp;
+				
+					<a href="https://twitter.com/kov4l3nko">Twitter</a>&nbsp;
+				
+					<a href="https://github.com/kov4l3nko">GitHub</a>&nbsp;
+				
+					<a href="https://kov4l3nko.github.io/blog/index.xml">RSS</a>&nbsp;
+				
+			</div>
+		</div>
+		<img id="blog-title-image" src="title.jpg">
+	</header>
+
+	<content>
+		<h1 class="post-title">Cracking SSL pinning in AFNetwork</h1>
+		<div class="post-date">Jun 17, 2018</div>
+		
+		<p>I continue to play with SSL pinning on iOS. This time is was <a href="https://github.com/AFNetworking/AFNetworking">AFNetworking</a> framework.</p>
+
+<p>Today a random guy from Twitter asked me to disable SSL on the <a href="https://itunes.apple.com/sa/app/loops-your-live-playground/id1085411495?mt=8">Loops</a> app for Android and iOS. From time to time I do quick researches for free, so why not?</p>
+
+<p>It is well known that the &ldquo;key function&rdquo; of SSL pinning protection in AFNetworking is the method</p>
+
+<pre><code>-[AFSecurityPolicy evaluateServerTrust:forDomain:]
+</code></pre>
+
+<p>declared as</p>
+
+<pre><code>- (BOOL)evaluateServerTrust:(SecTrustRef)serverTrust forDomain:(nullable NSString *)domain;
+</code></pre>
+
+<p>It returns <code>1</code> if domain is safe, and <code>0</code> otherwise. So, the easiest way to crack SSL pinning here is to hook the method and replace the result with <code>1</code>. I wrote a simple Frida script:</p>
+
+<pre><code>/*
+
+	**********************************************
+	 disable_ssl_pinning_in_loops.js Frida script
+	 by Dima Kovalenko
+	**********************************************
+	
+	Usage:
+		
+		1. Run Loops on the device
+		
+		2. Inject the script to the process:
+			$ frida -U -n LOOPS  -l disable_ssl_pinning_in_loops.js
+		
+		3. SSL pinning in Loops HTTPs is
+		   disabled. Now you can intercept
+		   Loops HTTPs requests, e.g. with
+		   mitmproxy.
+		   
+		IMPORTANT NOTE: Use an HTTP(s) sniffer with HTTP 2.0 support!
+
+*/
+
+function main() {
+	var resolver = new ApiResolver('objc');
+	var matches = resolver.enumerateMatchesSync(&quot;-[AFSecurityPolicy evaluateServerTrust:forDomain:]&quot;);
+	if (matches.lenght == 0) {
+		console.log(&quot;\n[E] -[AFSecurityPolicy evaluateServerTrust:forDomain:] is not found!\n&quot;);
+		return;
+	}
+	Interceptor.attach(
+		ptr(matches[0][&quot;address&quot;]),
+		{
+			onLeave: function(retval) {
+				console.log(&quot;[I] -[AFSecurityPolicy evaluateServerTrust:forDomain:] hits!&quot;);
+				retval.replace(1);
+			}
+		}
+	);
+	console.log(&quot;[I] -[AFSecurityPolicy evaluateServerTrust:forDomain:] is hooked!\n&quot;)
+}
+
+main();
+</code></pre>
+
+<p>As result, I saw HTTP(s) traffic of the Loops app:</p>
+
+<p><img src="sniff_example.png" alt="" /></p>
+
+<p><img src="request_example.png" alt="" /></p>
+
+<p>The research and the script creation took 30 min.</p>
+
+<p>So it goes.</p>
+
+		
+		<h1>Wanna say something?</h1>
+		<p>Commenting is not available in this blog, but you can <a href="https://kov4l3nko.github.io/about/">write me a letter or message</a>. Please, note that English is not my native language.
+			I'm sorry for mistakes/missprints, if any.</p>
+		
+
+		
+		
+		
+		
+		
+		
+		
+		
+		
+			
+			
+				
+			
+			
+		
+			
+				
+				
+				
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+		
+		
+			Prev: <a href="https://kov4l3nko.github.io/blog/2018-05-27-sll-pinning-hook-sectrustevaluate/">Disabling SSL pinning by hooking SecTrustEvaluate(...) on iOS 11</a>
+			<br>
+		
+		
+	</content>
+
+	<footer>
+		Copyright © Dima Kovalenko, 2012-2018
+	</footer>
+	
+	<button onclick="topFunction()" id="scroll-btn" title="Go to top">▲</button>
+	
+	<script src="https://kov4l3nko.github.io/scripts.js"></script>
+	
+</body>
+</html>
