@@ -13,10 +13,10 @@
     
     <item>
       <title>Cracking SSL pinning in AFNetwork</title>
-      <link>https://kov4l3nko.github.io/blog/2018-06-18-afnetwork-disable-ssl-pinning/</link>
+      <link>https://kov4l3nko.github.io/blog/2018-06-17-afnetwork-disable-ssl-pinning/</link>
       <pubDate>Sun, 17 Jun 2018 00:00:00 +0000</pubDate>
       
-      <guid>https://kov4l3nko.github.io/blog/2018-06-18-afnetwork-disable-ssl-pinning/</guid>
+      <guid>https://kov4l3nko.github.io/blog/2018-06-17-afnetwork-disable-ssl-pinning/</guid>
       <description>I continue to play with SSL pinning on iOS. This time is was AFNetworking framework.
 Today a random guy from Twitter asked me to disable SSL on the Loops app for Android and iOS. From time to time I do quick researches for free, so why not?
 It is well known that the &amp;ldquo;key function&amp;rdquo; of SSL pinning protection in AFNetworking is the method
