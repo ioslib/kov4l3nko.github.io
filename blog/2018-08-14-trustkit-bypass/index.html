@@ -1,0 +1,283 @@
+<html>
+<head>
+	<meta charset="UTF-8">
+	
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<title>Trust no one: TrustKit SSL pinning bypass - @kov4l3nko</title>
+	
+	<meta name="twitter:card" content="summary_large_image"></meta>
+	<meta name="twitter:site" content="@kov4l3nko"></meta>
+	<meta name="twitter:creator" content="@kov4l3nko"></meta>
+	<meta property="og:url" content="https://kov4l3nko.github.io/blog/2018-08-14-trustkit-bypass/"></meta>
+	<meta property="og:title" content="Trust no one: TrustKit SSL pinning bypass"></meta>
+	<meta property="og:image" content="https://kov4l3nko.github.io/blog/2018-08-14-trustkit-bypass/title.jpg"></meta>
+
+	<link rel="stylesheet" type="text/css" href="https://kov4l3nko.github.io/styles.css">
+
+	
+
+</head>
+<body>
+	<header>
+		<div id="top">
+			<div id="blog-title">
+				<h1><a href="https://kov4l3nko.github.io/">@kov4l3nko</a></h1>
+			</div>
+			<div id="blog-menu">
+				<a href="https://kov4l3nko.github.io/">Blog</a>
+				
+					<a href="https://kov4l3nko.github.io/about/">About</a>&nbsp;
+				
+					<a href="https://twitter.com/kov4l3nko">Twitter</a>&nbsp;
+				
+					<a href="https://github.com/kov4l3nko">GitHub</a>&nbsp;
+				
+					<a href="https://kov4l3nko.github.io/blog/index.xml">RSS</a>&nbsp;
+				
+			</div>
+		</div>
+		<img id="blog-title-image" src="title.jpg">
+	</header>
+
+	<content>
+		<h1 class="post-title">Trust no one: TrustKit SSL pinning bypass</h1>
+		<div class="post-date">Aug 14, 2018</div>
+		
+		<p>This is a blog post about disabling SSL pinning&hellip; yes, again! :) About two weeks ago I researched an iOS application. The application used <a href="https://github.com/datatheorem/TrustKit">TrustKit</a> from <a href="https://www.datatheorem.com">DataTheorem</a> to implement SSL pinning. My goal was to bypass the protection and intercept the traffic. Here is a quick research.</p>
+
+<hr />
+
+<p><strong>Note!</strong> The research was a part of a bug bounty program. According to the bug bounty NDA, I can&rsquo;t share the application name, so I removed any application-related details from screenshots. Thanks for your understanding.</p>
+
+<hr />
+
+<p>After digging <a href="https://github.com/datatheorem/TrustKit">the TrustKit sources on GitHub</a>, I found two relatively simple tricks to bypass TrustKit. First one looked barely legal. The application initialized TrustKit as follows:</p>
+
+<p><img src="initSharedInstanceWithConfiguration.png" alt="" /></p>
+
+<p>According to the <a href="https://github.com/datatheorem/TrustKit/blob/master/docs/getting-started.md#always-start-with-pinning-enforcement-disabled">TrustKit documentation</a>, it was enough to hook</p>
+
+<pre><code>+[TrustKit initSharedInstanceWithConfiguration:]
+</code></pre>
+
+<p>and set <code>TKSEnforcePinning</code> to zero at the method entry point. It might work, but it needed to get a mutable copy of the <code>NSDictionary</code> with the settings, then to get all nested dictionaries and their mutable copies, then to alternate them all, then to assemble all that crap back into a &ldquo;fixed&rdquo; immutable setting dictionary&hellip; it was too much coding for a lazy guy like me :)</p>
+
+<p>So I found a another way. I just replaced</p>
+
+<pre><code>// See https://github.com/datatheorem/TrustKit/blob/master/TrustKit/Pinning/ssl_pin_verifier.m 
+// for details
+TSKTrustEvaluationResult verifyPublicKeyPin(
+	SecTrustRef serverTrust, 
+	NSString *serverHostname, 
+	NSSet&lt;NSData *&gt; *knownPins, 
+	TSKSPKIHashCache *hashCache
+)
+</code></pre>
+
+<p>with a dummy function in runtime. It always return <code>TSKTrustEvaluationSuccess</code> (<code>=0</code>). It was easy. Here is the Frida script:</p>
+
+<pre><code>/*
+	
+	This is bypass_trustkit.js. To start the script, run
+	$ frida -U -f the.app.bundle.Name --no-pause -l bypass_trustkit.js
+	
+*/
+
+function main() {
+		
+	// Get verifyPublicKeyPin address
+	var symbols = Module.enumerateSymbolsSync(&quot;TrustKit&quot;);
+	var verifyPublicKeyPin_prt = null;
+	for (var i = 0; i &lt; symbols.length; i++) {
+		if (symbols[i][&quot;name&quot;] === &quot;verifyPublicKeyPin&quot;) {
+			verifyPublicKeyPin_prt = symbols[i][&quot;address&quot;];
+			break;
+		}
+	}
+
+	// Did we find verifyPublicKeyPin?
+	if (verifyPublicKeyPin_prt == null) {
+		console.log(&quot;[!] TrustKit!verifyPublicKeyPin(...) not found!&quot;);
+		return;
+	}
+		
+	// Hook verifyPublicKeyPin
+	Interceptor.replace(
+		verifyPublicKeyPin_prt, 
+		new NativeCallback(function(serverTrust, serverHostname, knownPins, hashCache) {
+			return 0; // =TSKTrustEvaluationSuccess
+		}, 
+	&quot;int&quot;, [&quot;pointer&quot;, &quot;pointer&quot;, &quot;pointer&quot;, &quot;pointer&quot;]));
+
+	// It's done!
+	console.log(&quot;[*] verifyPublicKeyPin(...) hooked. SSL pinning should be disabled now.&quot;);	
+}
+
+// Run the script
+main();
+</code></pre>
+
+<p>It worked for me and I saw the traffic:</p>
+
+<p><img src="request_without_tk.png" alt="" /></p>
+
+<hr />
+
+<p><strong>Warning!</strong> If you wanna use the script, do it on your own risk. Stable and safe work of the script is not guaranteed!</p>
+
+<hr />
+
+<p>So it goes.</p>
+
+		
+		<h1>Wanna say something?</h1>
+		<p>Commenting is not available in this blog, but you can <a href="https://kov4l3nko.github.io/about/">write me a letter or message</a>. Please, note that English is not my native language.
+			I'm sorry for mistakes/missprints, if any.</p>
+		
+
+		
+		
+		
+		
+		
+		
+		
+		
+		
+			
+			
+				
+			
+			
+		
+			
+				
+				
+				
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+			
+			
+			
+		
+		
+		
+			Prev: <a href="https://kov4l3nko.github.io/blog/2018-06-17-afnetwork-disable-ssl-pinning/">Cracking SSL pinning in AFNetworking</a>
+			<br>
+		
+		
+	</content>
+
+	<footer>
+		Copyright © Dima Kovalenko, 2012-2018
+	</footer>
+	
+	<button onclick="topFunction()" id="scroll-btn" title="Go to top">▲</button>
+	
+	<script src="https://kov4l3nko.github.io/scripts.js"></script>
+	
+</body>
+</html>

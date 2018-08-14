@@ -6,10 +6,20 @@
     <description>Recent content in Blogs on @kov4l3nko</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 17 Jun 2018 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 14 Aug 2018 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="https://kov4l3nko.github.io/blog/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Trust no one: TrustKit SSL pinning bypass</title>
+      <link>https://kov4l3nko.github.io/blog/2018-08-14-trustkit-bypass/</link>
+      <pubDate>Tue, 14 Aug 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://kov4l3nko.github.io/blog/2018-08-14-trustkit-bypass/</guid>
+      <description>This is a blog post about disabling SSL pinning&amp;hellip; yes, again! :) About two weeks ago I researched an iOS application. The application used TrustKit from DataTheorem to implement SSL pinning. My goal was to bypass the protection and intercept the traffic. Here is a quick research.
+Note! The research was a part of a bug bounty program. According to the bug bounty NDA, I can&amp;rsquo;t share the application name, so I removed any application-related details from screenshots.</description>
+    </item>
     
     <item>
       <title>Cracking SSL pinning in AFNetworking</title>
