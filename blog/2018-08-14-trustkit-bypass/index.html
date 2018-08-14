@@ -63,7 +63,7 @@
 
 <p>and set <code>TKSEnforcePinning</code> to zero at the method entry point. It might work, but it needed to get a mutable copy of the <code>NSDictionary</code> with the settings, then to get all nested dictionaries and their mutable copies, then to alternate them all, then to assemble all that crap back into a &ldquo;fixed&rdquo; immutable setting dictionary&hellip; it was too much coding for a lazy guy like me :)</p>
 
-<p>So I found a another way. I just replaced</p>
+<p>So I found another way. I just replaced</p>
 
 <pre><code>// See https://github.com/datatheorem/TrustKit/blob/master/TrustKit/Pinning/ssl_pin_verifier.m 
 // for details
@@ -118,7 +118,7 @@ function main() {
 main();
 </code></pre>
 
-<p>It worked for me and I saw the traffic:</p>
+<p>It worked for me, I intercepted the traffic:</p>
 
 <p><img src="request_without_tk.png" alt="" /></p>
 
