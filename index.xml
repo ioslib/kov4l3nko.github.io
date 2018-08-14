@@ -17,8 +17,7 @@
       <pubDate>Sun, 17 Jun 2018 00:00:00 +0000</pubDate>
       
       <guid>https://kov4l3nko.github.io/blog/2018-06-17-afnetwork-disable-ssl-pinning/</guid>
-      <description>I continue to play with SSL pinning on iOS. This time is was AFNetworking framework.
-Today a random guy from Twitter asked me to disable SSL on the Loops app for Android and iOS. From time to time I do quick researches for free, so why not?
+      <description>I continue to play with SSL pinning on iOS. This time is was AFNetworking framework. Today a random guy from Twitter asked me to disable SSL on the Loops app for Android and iOS. From time to time I do quick researches for free, so why not?
 It is well known that the &amp;ldquo;key function&amp;rdquo; of SSL pinning protection in AFNetworking is the method
 -[AFSecurityPolicy evaluateServerTrust:forDomain:]  declared as
 - (BOOL)evaluateServerTrust:(SecTrustRef)serverTrust forDomain:(nullable NSString *)domain;  It returns 1 if domain is safe, and 0 otherwise.</description>
